@@ -1,5 +1,7 @@
-from dotenv import load_dotenv
 import os
+from functools import lru_cache
+
+from dotenv import load_dotenv
 
 from binance import Client
 import pandas as pd
@@ -37,6 +39,7 @@ NUMERIC_KLINES_COLUMNS = [
 client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
 
 
+@lru_cache()
 def load_binance_dataset(symbol: str, interval: str, start: str, end: str):
     data = client.get_historical_klines(
         symbol=symbol, interval=interval, start_str=start, end_str=end
