@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 from binance import Client
 import pandas as pd
 
+from data import FIDELITY_MAPPING
+from poly_datasets import PMDataset
+
 # Load environment variables
 load_dotenv()
 BINANCE_API_KEY = os.getenv("BINANCE_API_KEY")
@@ -57,3 +60,15 @@ def load_binance_dataset(symbol: str, interval: str, start: str, end: str):
     BTC_df = BTC_df.set_index("Open Time")
 
     return BTC_df
+
+
+def load_matching_binance_data(pm_data: list[PMDataset], fidelity: int):
+    # Load data from binance
+    start_date = min(pm_data, key=lambda d: d.date_from).date_from.isoformat()
+    end_date = max(pm_data, key=lambda d: d.date_to).date_to.isoformat()
+
+    binance_df = load_binance_dataset(
+        "BTCUSDT", FIDELITY_MAPPING[fidelity], start_date, end_date
+    )
+
+    return binance_df

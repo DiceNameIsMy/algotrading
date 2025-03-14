@@ -119,8 +119,8 @@ def load_market_data(market_id: str, options: TSOptions) -> pd.DataFrame | None:
 
     if market_data is None:
         print(
-            f"Didn't find any data for market `{market_id[:10]}...`, "
-            + f"slug: `{market['market_slug']}"
+            f"Didn't find any data for market `{market_id[:10]}...`, ",
+            f"slug: `{market['market_slug']}"
         )
 
     return market_data
