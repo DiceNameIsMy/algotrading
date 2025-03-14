@@ -18,29 +18,28 @@ class PMDataset:
 
 
 def _load_pm_dataset(filename: str) -> pd.DataFrame:
-    pm_df = pd.read_csv(
-        f"../data/{filename}", parse_dates=["Date (UTC)"], index_col="Date (UTC)"
+    pm_df = (
+        pd.read_csv(
+            f"../data/{filename}", parse_dates=["Date (UTC)"], index_col="Date (UTC)"
+        )
+        .rename(columns={"Date (UTC)": "date"})
+        .drop(columns=["Timestamp (UTC)"])
     )
-    bet_cols = pm_df.columns[pm_df.columns.str.startswith("$")]
-    new_bet_cols = [col.split(",")[0].split("$")[1] for col in bet_cols]
-
-    rename_mapping = {f"${col},000": col for col in new_bet_cols}
-    rename_mapping["Date (UTC)"] = "date"
-
-    pm_df = pm_df.rename(columns=rename_mapping).drop(columns=["Timestamp (UTC)"])
 
     return pm_df
 
 
-def load_pm_dataset(filename: str) -> list[PMDataset]:
-    pm_df = _load_pm_dataset(filename)
-
+def process_pm_df(pm_df: pd.DataFrame):
     result = []
 
     for column in pm_df.columns:
 
         # Find the time window where values exist
         non_nan_idxs = pm_df[column].dropna().index
+        if non_nan_idxs.empty:
+            print(f"Column {column} has no data. Skipping")
+            continue
+
         start = non_nan_idxs.min()
         end = non_nan_idxs[-1]
 
@@ -61,3 +60,9 @@ def load_pm_dataset(filename: str) -> list[PMDataset]:
         )
 
     return result
+
+
+def load_pm_dataset(filename: str) -> list[PMDataset]:
+    pm_df = _load_pm_dataset(filename)
+
+    return process_pm_df(pm_df)
