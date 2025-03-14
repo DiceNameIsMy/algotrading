@@ -16,6 +16,28 @@ class PMDataset:
     close: np.ndarray
     delta: np.ndarray
 
+    def subset(self, start: datetime, end: datetime):
+        start_idx = self.index.get_loc(start)
+        end_idx = self.index.get_loc(end)
+        return PMDataset(
+            label=self.label,
+            date_from=start,
+            date_to=end,
+            index=self.index[start_idx : end_idx + 1],
+            open=self.open[start_idx : end_idx + 1],
+            close=self.close[start_idx : end_idx + 1],
+            delta=self.delta[start_idx : end_idx + 1],
+        )
+
+
+@dataclass
+class PolyEventData:
+    label: str
+    date_from: datetime
+    date_to: datetime
+
+    markets_data: list[PMDataset]
+
 
 def _load_pm_dataset(filename: str) -> pd.DataFrame:
     pm_df = (
@@ -29,7 +51,7 @@ def _load_pm_dataset(filename: str) -> pd.DataFrame:
     return pm_df
 
 
-def process_pm_df(pm_df: pd.DataFrame):
+def process_pm_df(pm_df: pd.DataFrame) -> list[PMDataset]:
     result = []
 
     for column in pm_df.columns:

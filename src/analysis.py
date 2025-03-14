@@ -1,61 +1,40 @@
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 import numpy as np
-from sklearn.preprocessing import MaxAbsScaler
+from pandas import Series
+from scipy import signal
 from binance_datasets import load_binance_dataset
 from poly_datasets import PMDataset
+from data import FIDELITY_MAPPING
 
 
-def plot_delta_correlation(
-    pm_data: list[PMDataset], interval: str, corr_amplitude: int = 3
-):
-    """
-    Computes correlations between poly data and cryptocurrency
-    price change and makes its plot.
-
-    If plot is high with a negative offset, it means that
-    cryptocurrency price change is leading the polymarket share price change.
-    """
-
+def load_mathing_binance_data(pm_data: list[PMDataset], fidelity: int):
     # Load data from binance
     start_date = min(pm_data, key=lambda d: d.date_from).date_from.isoformat()
     end_date = max(pm_data, key=lambda d: d.date_to).date_to.isoformat()
 
-    binance_df = load_binance_dataset("BTCUSDT", interval, start_date, end_date)
+    binance_df = load_binance_dataset(
+        "BTCUSDT", FIDELITY_MAPPING[fidelity], start_date, end_date
+    )
 
-    # Merge pm and binance data
-    pm_datasets = []
-    deltas = []
-    binance_deltas = []
-    for data in pm_data:
-        if len(data.open) < corr_amplitude * 2:
-            print(f"Skipping {data.label} due to insufficient data")
-            continue
+    return binance_df
 
-        binance_delta = binance_df.loc[data.index, "delta"]
 
-        scaler = MaxAbsScaler()
+def compute_delta_correlation(
+    pm_data: list[PMDataset],
+    deltas: Series,
+    offset_amplitude: int = 3,
+) -> tuple[list, range]:
+    corr_offsets = range(-offset_amplitude, offset_amplitude + 1)
 
-        # delta = scaler.fit_transform(data.delta.reshape(-1, 1)).flatten()
-        deltas.append(data.delta)
-
-        binance_delta = scaler.fit_transform(
-            binance_delta.values.reshape(-1, 1)
-        ).flatten()
-        binance_deltas.append(binance_delta)
-
-        pm_datasets.append(data)
-
-    # Compute correlations with offset
-    corr_offsets = range(-corr_amplitude, corr_amplitude + 1)
     corr_data = []
-    for i in range(len(pm_datasets)):
-        data: PMDataset = pm_datasets[i]
-        delta = deltas[i]
-        BTC_delta = binance_deltas[i]
+    for i in range(len(pm_data)):
+        poly_delta = pm_data[i].delta
+        BTC_delta = deltas[i]
 
         col_corr_data = []
         for offset in corr_offsets:
-            offset_poly_delta = np.roll(delta, offset)
+            offset_poly_delta = np.roll(poly_delta, offset)
             offset_BTC_delta = BTC_delta
 
             if offset > 0:
@@ -72,34 +51,86 @@ def plot_delta_correlation(
             col_corr_data.append(correlation_with_offset)
         corr_data.append(col_corr_data)
 
-    # Plot the data
-    fig, axes = plt.subplots(
-        nrows=len(pm_datasets), ncols=2, figsize=(10, 2.8 * len(pm_datasets))
+    return corr_data, corr_offsets
+
+
+def plot_delta_correlation(
+    pm_data: list[PMDataset], fidelity: int, corr_amplitude: int = 3
+):
+    """
+    Computes correlations between poly data and cryptocurrency
+    price change and makes its plot.
+
+    If plot is high with a negative offset, it means that
+    cryptocurrency price change is leading the polymarket share price change.
+    """
+
+    # Load data from binance
+    binance_df = load_mathing_binance_data(pm_data, fidelity)
+
+    # Merge pm and binance data
+    poly_datasets_to_process: list[PMDataset] = []
+    binance_deltas = []
+
+    for data in pm_data:
+        if len(data.open) < corr_amplitude * 2:
+            print(f"Skipping {data.label} due to insufficient data")
+            continue
+
+        binance_delta = binance_df.loc[data.index, "delta"]
+
+        # rescaled_binance_delta = binance_delta / binance_delta.abs().max()
+        binance_deltas.append(binance_delta)
+
+        poly_datasets_to_process.append(data)
+
+    # Compute correlations with offset
+    corr_data, corr_offsets = compute_delta_correlation(
+        poly_datasets_to_process, binance_deltas, corr_amplitude
     )
 
-    if len(pm_datasets) == 1:
+    # Plot the data
+    width = 10
+    height = 2.8 * len(poly_datasets_to_process)
+
+    fig, axes = plt.subplots(
+        figsize=(width, height), ncols=2, nrows=len(poly_datasets_to_process)
+    )
+
+    if len(poly_datasets_to_process) == 1:
         axes = np.array([axes])
 
-    for i, data in enumerate(pm_datasets):
+    for i, data in enumerate(poly_datasets_to_process):
 
         # Plot offsetted correlations
-        axes[i][0].plot(corr_offsets, corr_data[i], label=data.label, marker='o')
-        axes[i][0].set_title("Correlation with offset")
-        axes[i][0].set_xlabel("Offset")
-        axes[i][0].set_ylabel("Corr. coef.")
-        axes[i][0].set_ylim(-1, 1)
-        axes[i][0].legend()
-        axes[i][0].grid(True)
+        left_ax: Axes = axes[i][0]
+        left_ax.plot(corr_offsets, corr_data[i], label=data.label, marker="o")
+        left_ax.set_title("Correlation with offset")
+        left_ax.set_xlabel("Offset")
+        left_ax.set_ylabel("Corr. coef.")
+        left_ax.set_ylim(-1, 1)
+        left_ax.legend()
+        left_ax.grid(True)
 
         # Plot polymarket probability
-        axes[i][1].plot(data.index, data.open, label=f"open_{data.label}")
-        axes[i][1].set_title("Polymarket probability")
-        axes[i][1].set_xlabel("Time")
-        axes[i][1].set_xticks(axes[i][1].get_xticks())
-        axes[i][1].set_xticklabels(axes[i][1].get_xticklabels(), rotation=45)
-        axes[i][1].set_ylabel("Probability")
-        axes[i][1].legend()
-        axes[i][1].grid(True)
+        if len(data.index) > 200:
+            q = len(data.index) // 100
+            y = signal.decimate(data.open, q)
+            x = data.index[::q]
+        else:
+            y = data.open
+            x = data.index
+
+        right_ax: Axes = axes[i][1]
+        right_ax.plot(x, y, label=f"open_{data.label}")
+        right_ax.set_title("Poly probability")
+        right_ax.set_xlabel("Time")
+        right_ax.set_xticks(right_ax.get_xticks())
+        right_ax.set_xticklabels(right_ax.get_xticklabels(), rotation=45)
+        right_ax.set_ylabel("Probability")
+        right_ax.set_ylim(0, 1)
+        right_ax.legend()
+        right_ax.grid(True)
 
     plt.tight_layout()
     plt.show()
