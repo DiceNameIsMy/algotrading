@@ -10,6 +10,7 @@ class PMDataset:
     label: str
     date_from: datetime
     date_to: datetime
+    resolved_as: str  # "yes" or "no" or "unknown"
 
     index: pd.DatetimeIndex
     open: np.ndarray
@@ -23,6 +24,7 @@ class PMDataset:
             label=self.label,
             date_from=start,
             date_to=end,
+            resolved_as=self.resolved_as,
             index=self.index[start_idx : end_idx + 1],
             open=self.open[start_idx : end_idx + 1],
             close=self.close[start_idx : end_idx + 1],
@@ -47,6 +49,9 @@ def _load_pm_dataset(filename: str) -> pd.DataFrame:
         .rename(columns={"Date (UTC)": "date"})
         .drop(columns=["Timestamp (UTC)"])
     )
+    outcomes = {col: "unknown" for col in pm_df.columns}
+
+    pm_df.attrs["outcomes"] = outcomes
 
     return pm_df
 
@@ -74,6 +79,7 @@ def process_pm_df(pm_df: pd.DataFrame) -> list[PMDataset]:
                 label=column,
                 date_from=start,
                 date_to=end,
+                resolved_as=pm_df.attrs["outcomes"][column],
                 index=open_data[:-1].index,
                 open=open_data[:-1].values,
                 close=close_data[:-1].values,

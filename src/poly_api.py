@@ -120,8 +120,17 @@ def load_market_data(market_id: str, options: TSOptions) -> pd.DataFrame | None:
     if market_data is None:
         print(
             f"Didn't find any data for market `{market_id[:10]}...`, ",
-            f"slug: `{market['market_slug']}"
+            f"slug: `{market['market_slug']}",
         )
+        return None
+
+    outcome = "unknown"
+    for token in market["tokens"]:
+        if token["winner"]:
+            outcome = token["outcome"].lower()
+            break
+
+    market_data.attrs["outcomes"] = {market["market_slug"]: outcome}
 
     return market_data
 
@@ -137,6 +146,11 @@ def load_markets_data(market_ids: list[str], options: TSOptions) -> pd.DataFrame
         if all_markets_data is None:
             all_markets_data = market_data
         else:
+            attrs = {
+                **all_markets_data.attrs["outcomes"],
+                **market_data.attrs["outcomes"],
+            }
             all_markets_data = pd.concat([all_markets_data, market_data], axis=1)
+            all_markets_data.attrs["outcomes"] = attrs
 
     return all_markets_data

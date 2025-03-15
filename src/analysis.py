@@ -94,8 +94,19 @@ def plot_delta_correlation(
             x = data.index
             binance_x = binance_open.index
 
+        outcome = markets[i].resolved_as
+        if outcome == "yes":
+            color = "green"
+        elif outcome == "no":
+            color = "red"
+        elif outcome == "unknown":
+            color = "blue"
+        else:
+            color = "black"
+            print(f"Unknown outcome for market {markets[i].label}: {outcome}")
+
         mid_ax: Axes = axes[i][1]
-        mid_ax.plot(x, poly_y)
+        mid_ax.plot(x, poly_y, color=color)
         mid_ax.set_title("Poly probability")
         mid_ax.set_xlabel("Time")
         mid_ax.set_xticks(mid_ax.get_xticks())
