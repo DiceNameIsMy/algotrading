@@ -66,13 +66,13 @@ def load_binance_dataset(symbol: str, fidelity: str, start: datetime, end: datet
     return BTC_df
 
 
-def load_matching_binance_data(pm_data: list[PMDataset], fidelity: int):
+def load_matching_binance_data(pm_data: list[PMDataset], fidelity: int, currency: str):
     # Load data from binance
     start_date = min(pm_data, key=lambda d: d.date_from).date_from
     end_date = max(pm_data, key=lambda d: d.date_to).date_to
 
     print(f"Loading from binance at intervals: from {start_date} until {end_date}")
 
-    binance_df = load_binance_dataset("BTCUSDT", fidelity, start_date, end_date)
+    binance_df = load_binance_dataset(currency, fidelity, start_date, end_date)
 
     return binance_df
