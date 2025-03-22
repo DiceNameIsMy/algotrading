@@ -5,11 +5,17 @@ import numpy as np
 import pandas as pd
 
 
+all_markets: list["Market"] = []
+
+
 @dataclass
 class Market:
     date_from: datetime
     date_to: datetime
     market_ids: list[str]
+
+    def __post_init__(self):
+        all_markets.append(self)
 
 
 class Markets:

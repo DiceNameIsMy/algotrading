@@ -23,6 +23,8 @@ class TSOptions:
 
 
 class MyClobClient(ClobClient):
+    # TODO: Add EP for querying events?
+
     def get_timeseries(self, market: str, options: TSOptions):
         """
         Parameters:
