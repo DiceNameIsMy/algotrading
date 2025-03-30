@@ -6,4 +6,4 @@ mplfinance==0.12.10b0
 scikit-learn==1.6.1
 python-dotenv==1.0.1
 py_clob_client==0.20.0
-openpyxl-3.1.5
+openpyxl==3.1.5
