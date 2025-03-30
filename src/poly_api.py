@@ -13,6 +13,8 @@ from py_clob_client.client import ClobClient
 load_dotenv()
 
 POLY_HOST = "https://clob.polymarket.com"
+
+# To get this private key, go to polymarket.com -> settings -> Export Private Key
 POLY_PRIVATE_KEY = os.getenv("POLYMARKET_PRIVATE_KEY")
 
 
