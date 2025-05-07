@@ -92,6 +92,16 @@ class Markets:
 
 
 @dataclass
+class PolyOrderBookLogs:
+    date_from: datetime
+    date_to: datetime
+
+    index: pd.DatetimeIndex
+    ask: float
+    bid: float
+
+
+@dataclass
 class PMDataset:
     label: str
     date_from: datetime

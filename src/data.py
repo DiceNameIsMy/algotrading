@@ -2,6 +2,7 @@ from binance import Client
 
 
 FIDELITY_MAPPING = {
+    1: Client.KLINE_INTERVAL_1MINUTE,
     3: Client.KLINE_INTERVAL_3MINUTE,
     5: Client.KLINE_INTERVAL_5MINUTE,
     15: Client.KLINE_INTERVAL_15MINUTE,
